@@ -28,7 +28,7 @@ void
     enum cgol_state state
   );
 
-void
+int
   cgol_world_step_simulation(cgol_world_t *world);
 
 void

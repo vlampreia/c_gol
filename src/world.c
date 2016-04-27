@@ -62,13 +62,18 @@ void cgol_world_set_cell(
 static int cgol_world_neighbours(cgol_world_t *world, size_t x, size_t y) {
   int count = 0;
   size_t top = y > 0? y-1: y;
-  size_t bot = y < world->height? y+1: y;
+  size_t bot = y < world->height-1? y+1: y;
   size_t left = x > 0? x-1: x;
-  size_t right = x < world->width? x+1: x;
+  size_t right = x < world->width-1? x+1: x;
+  //size_t top = y-1;
+  //size_t bot = y+1;
+  //size_t left = x-1;
+  //size_t right = x+1;
 
-  for (size_t y = top; y < bot; ++y) {
-    for (size_t x = left; x < right; ++x) {
-      if (cgol_world_cell(world, x, y) == STATE_POPULATED) ++count;
+  for (size_t _y = top; _y <= bot; ++_y) {
+    for (size_t _x = left; _x <= right; ++_x) {
+      if(_x == x && _y == y) continue;
+      if (cgol_world_cell(world, _x, _y) == STATE_POPULATED) ++count;
     }
   }
 
@@ -76,28 +81,41 @@ static int cgol_world_neighbours(cgol_world_t *world, size_t x, size_t y) {
 }
 
 
-void cgol_world_step_simulation(cgol_world_t *world) {
+int cgol_world_step_simulation(cgol_world_t *world) {
   assert(world);
 
   enum cgol_state *newState = malloc(world->width*world->height*sizeof(enum cgol_state));
+  assert(newState);
+
   memcpy(newState, world->cell_grid, world->width*world->height*sizeof(enum cgol_state));
+
+  int changes = 0;
 
   for (size_t y = 0; y < world->height; ++y) {
     for (size_t x = 0; x < world->width; ++x) {
       int neighbours = cgol_world_neighbours(world, x, y);
 
-      if(neighbours > 0) printf("%d\n", neighbours);
       if (cgol_world_cell(world, x, y) == STATE_POPULATED) {
-        if      (neighbours < 2) s_grid_set(newState, x, world->width, y, STATE_UNPOPULATED);
-        else if (neighbours > 3) s_grid_set(newState, x, world->width, y, STATE_UNPOPULATED);
+        if (neighbours < 2) {
+          s_grid_set(newState, x, world->width, y, STATE_UNPOPULATED);
+          changes = 1;
+        } else if (neighbours > 3) {
+          s_grid_set(newState, x, world->width, y, STATE_UNPOPULATED);
+          changes = 1;
+        }
       } else {
-        if (neighbours == 3) s_grid_set(newState, x, world->width, y, STATE_POPULATED);
+        if (neighbours == 3) {
+          s_grid_set(newState, x, world->width, y, STATE_POPULATED);
+          changes = 1;
+        }
       }
     }
   }
 
   free(world->cell_grid);
   world->cell_grid = newState;
+
+  return changes;
 }
 
 
@@ -106,7 +124,6 @@ void cgol_world_print(cgol_world_t *world) {
 
   for (size_t y = 0; y < world->height; ++y) {
     for (size_t x = 0; x < world->width; ++x) {
-      //printf("[%s]", cgol_world_cell(world, x, y) == STATE_UNPOPULATED? " ": "x");
       if (cgol_world_cell(world, x, y) == STATE_POPULATED) {
         printf("[%d]", cgol_world_neighbours(world, x, y));
       } else {
